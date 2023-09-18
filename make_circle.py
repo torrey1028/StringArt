@@ -4,12 +4,12 @@ from PIL import Image, ImageDraw
 import math
 pi = math.pi
 
+# global variables -> should definitely be wrapped in a class at some point
+points = 200 # nails around the circle
+radius = 5000 # in pixels
+elements = []
 
-print("hi")
-
-points = 200
-radius = 5000
-
+# available colors
 plywood = (234, 213, 186, 255)
 yarn1 = (204, 153, 201, 255)
 yarn2 = (158, 193, 207, 255)
@@ -17,10 +17,7 @@ yarn3 = (158, 224, 158, 255)
 yarn4 = (253, 253, 151, 255)
 yarn5 = (254, 177, 68, 255)
 yarn6 = (255, 102, 99, 255)
-
 colors = ['yarn1', 'yarn2', 'yarn3', 'yarn4', 'yarn5', 'yarn6']
-elements = []
-
 
 def string_to_color(string):
     if string == 'yarn1':
@@ -38,7 +35,6 @@ def string_to_color(string):
     else:
         return yarn1
 
-
 def color_to_string(color):
     if color == yarn1:
         return 'yarn1'
@@ -55,10 +51,15 @@ def color_to_string(color):
     else:
         return 'yarn1'
 
-
-def PointsInCircum(r, n=100):
-    return [(math.cos(2*pi/n*x)*r, math.sin(2*pi/n*x)*r) for x in range(0, n)]
-
+# Different image features, each should implement: 
+# 1. render() function which takes an image as a parameter and draws itself on 
+#    the image
+# 2. get_gui() function which returns a list of gui elements to be displayed 
+#    in the window that the user can use to change the object
+# 3. get_json() function which returns a json object representing the object
+#    which can be used to save an object to and load an object from a file
+# 
+# Currently only the HourGlass class is implememented properly
 
 class Centered:
     def __init__(self, skip, fill, coords, width=0):
@@ -75,17 +76,6 @@ class Centered:
     def render(self, img):
         img.line(self.pattern, fill=self.fill, width=self.width)
 
-# def Centered(skip, img, fill, coords, width=0):
-#   x = 0
-#   pattern = coords[x]
-#   exit = False
-#   while not exit:
-#     x += skip
-#     pattern += coords[x % len(coords)]
-#     exit = x % len(coords) == 0
-#   img.line(pattern, fill=fill, width=width)
-
-
 class Fan:
     def __init__(self, origin, start, stop, fill, coords, width=0):
         self.pattern = []
@@ -97,14 +87,6 @@ class Fan:
 
     def render(self, img):
         img.line(self.pattern, fill=self.fill, width=self.width)
-
-# def Fan(origin, start, stop, img, fill, coords, width=0):
-#   pattern = []
-#   for x in range(start, stop):
-#      pattern += coords[origin]
-#      pattern += coords[x]
-#   img.line(pattern, fill=fill, width=width)
-
 
 class Stripe:
     def __init__(self, start, stop, offset, fill, coords, width=0):
@@ -118,17 +100,8 @@ class Stripe:
     def render(self, img):
         img.line(self.pattern, fill=self.fill, width=self.width)
 
-# def Stripe(start, stop, offset, img, fill, coords, width = 0):
-#   pattern = []
-#   for x in range(start, stop):
-#     pattern += coords[start + x]
-#     pattern += coords[stop - x + offset]
-#   img.line(pattern, fill=fill, width=width)
-
-
 class HourGlass:
-    class_count = 0
-
+    class_count = 0 # static value used to assign unique ids to each object
     def __init__(self, start, stop, offset, fill, width=0):
         self.fill = fill
         self.width = width
@@ -179,31 +152,14 @@ class HourGlass:
         json["id"] = self.id
         return json
 
-# def HourGlass(start, stop, offset, img, fill, coords, width = 0):
-#   pattern = []
-#   for x in range(start, stop):
-#     pattern += coords[(x) % len(coords)]
-#     pattern += coords[(x + offset) % len(coords)]
-#   img.line(pattern, fill=fill, width=width)
 
+# Generate points around a circle, this list is later translated from being 
+# centered around (0,0) to being centered around (radius, radius) 
+def PointsInCircum(r, n=100):
+    return [(math.cos(2*pi/n*x)*r, math.sin(2*pi/n*x)*r) for x in range(0, n)]
 
-elements.append(HourGlass(int(points/4) + 10, 20, int(points/6), yarn1, 5))
-elements.append(HourGlass(int(points/4), 20, int(points/6) + 20, yarn2, 5))
-elements.append(HourGlass(int(points/4) - 10, 20,
-                int(points/6) + 40, yarn3, 5))
-
-elements.append(HourGlass(int(points/4) - 10, 20, 100, yarn4, 5))
-
-elements.append(HourGlass(int(points/4) - 10, 20, 130, yarn3, 5))
-elements.append(HourGlass(int(points/4) - 20, 20, 150, yarn2, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 170, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 175, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 180, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 185, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 190, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 195, yarn1, 5))
-
-
+# Creates list of points centered around (radius, radius) used by visual
+# elements as coordinates to draw themselves
 def CreatePoints(radius, points):
     coordinates = PointsInCircum(radius, points)
     translated = []
@@ -212,7 +168,7 @@ def CreatePoints(radius, points):
         translated.append(new_coord)
     return translated
 
-
+# Draws the circle and all visual elements in the global elements list on it
 def DrawCircle(radius, points):
     img = Image.new("RGB", (radius*2, radius*2))
     coords = CreatePoints(radius, points)
@@ -224,59 +180,7 @@ def DrawCircle(radius, points):
 
     return img
 
-# creating new Image object
-# img = Image.new("RGB", (radius*2, radius*2))
-
-# # create points
-# # coordinates = PointsInCircum(radius, points)
-# translated = CreatePoints(radius, points)
-# # for item in coordinates:
-# #     new_coord = (item[0] + (radius), item[1] + (radius))
-# #     translated.append(new_coord)
-
-
-# # draw circle
-# img1 = ImageDraw.Draw(img)
-# img1.line(translated, width = 0)
-
-# # create pattern
-# # yarn1 = (100, 100, 0, 255)
-# # yarn2 = (0, 100, 0, 255)
-# # yarn3 = (0, 100, 100, 255)
-# # yarn4 = (0, 0, 100, 255)
-# # yarn5 = (100, 0, 0, 255)
-
-# # Centered(35, img1, yarn1, translated)
-# # Centered(37, img1, yarn2, translated)
-# # Centered(39, img1, yarn3, translated)
-# # Centered(41, img1, yarn4, translated)
-# # Centered(33, img1, yarn5, translated)
-
-
-# # Fan(5, 65, 85, img1, yarn1, translated)
-# # Fan(15, 65, 85, img1, yarn2, translated)
-# # Fan(25, 65, 85, img1, yarn3, translated)
-# # Fan(35, 65, 85, img1, yarn4, translated)
-# # Fan(45, 65, 85, img1, yarn5, translated)
-# # Fan(55, 65, 85, img1, yarn6, translated)
-
-# HourGlass(int(points/4) + 10, int((points/4)) + 30, int(points/6), img1, yarn1, translated, 5)
-# HourGlass(int(points/4), int((points/4)) + 20, int(points/6) + 20, img1, yarn2, translated, 5)
-# HourGlass(int(points/4) - 10, int((points/4)) + 10, int(points/6) + 40, img1, yarn3, translated, 5)
-
-# HourGlass(int(points/4) - 10, int((points/4) + 10), 100, img1, yarn4, translated, 5)
-
-# HourGlass(int(points/4) - 10, int((points/4)) + 10, 130, img1, yarn3, translated, 5)
-# HourGlass(int(points/4) - 20, int((points/4)), 150, img1, yarn2, translated, 5)
-# HourGlass(int(points/4) - 30, int((points/4)) - 10, 170, img1, yarn1, translated, 5)
-# # HourGlass(125, 150, 50, img1, yarn2, translated)
-
-# img.show()
-
-
-# img = DrawCircle(radius, points)
-
-
+# Converts an image to bytes so that it can be displayed in the window
 def get_image(img, resize=None):
     cur_width, cur_height = img.size
     if resize:
@@ -288,6 +192,7 @@ def get_image(img, resize=None):
         img.save(bio, format="PNG")
         return bio.getvalue()
 
+# Creates a json object representing the current state of the program
 def create_config_json():
     json = {}
     json["radius"] = radius
@@ -297,6 +202,7 @@ def create_config_json():
         json["elements"].append(item.get_json())
     return json
 
+# Applies a json object to the current state of the program
 def apply_config(config):
     json = eval(config)
     radius = json["radius"]
@@ -319,10 +225,30 @@ def apply_config(config):
                                      points), resize=(400, 400)))
     window.refresh()
 
-# def convert_to_bytes(file_or_bytes, resize=None):
-#    img = Image.open(file_or_bytes)
-# imgdata = convert_to_bytes("PySimpleGUI_logo.png")
-title = sg.Text("Hello from PySimpleGUI")
+# creates visual layout for virst column of the window
+def create_list():
+    list = []
+    list.append([save_btn, load_btn, update_btn])
+    list.append([input_txt, input_box])
+    for item in elements:
+        list.append(item.get_gui())
+    return list
+
+# add visual elements to the global elements list
+elements.append(HourGlass(int(points/4) + 10, 20, int(points/6), yarn1, 5))
+elements.append(HourGlass(int(points/4), 20, int(points/6) + 20, yarn2, 5))
+elements.append(HourGlass(int(points/4) - 10, 20,
+                int(points/6) + 40, yarn3, 5))
+elements.append(HourGlass(int(points/4) - 10, 20, 100, yarn4, 5))
+elements.append(HourGlass(int(points/4) - 10, 20, 130, yarn3, 5))
+elements.append(HourGlass(int(points/4) - 20, 20, 150, yarn2, 5))
+elements.append(HourGlass(int(points/4) - 30, 20, 170, yarn1, 5))
+elements.append(HourGlass(int(points/4) - 30, 20, 175, yarn1, 5))
+elements.append(HourGlass(int(points/4) - 30, 20, 180, yarn1, 5))
+elements.append(HourGlass(int(points/4) - 30, 20, 185, yarn1, 5))
+elements.append(HourGlass(int(points/4) - 30, 20, 190, yarn1, 5))
+elements.append(HourGlass(int(points/4) - 30, 20, 195, yarn1, 5))
+
 save_btn = sg.Button("Save")
 update_btn = sg.Button("Update")
 load_btn = sg.Button("Load")
@@ -332,16 +258,7 @@ input_box = sg.Input(points, key='-POINT-',
 image = sg.Image(key='-IMAGE-', data=get_image(DrawCircle(radius,
                  points), resize=(400, 400)), size=(400, 400))
 
-
-def create_list():
-    list = []
-    list.append([save_btn, load_btn, update_btn])
-    list.append([input_txt, input_box])
-    for item in elements:
-        list.append(item.get_gui())
-    return list
-
-
+# layout used by the window
 layout = [
     [
         sg.Column(create_list()),
@@ -350,32 +267,27 @@ layout = [
     ]
 ]
 
-# layout = [
-#   elements[0].get_gui(),
-# ]
-
 # Create the window
 window = sg.Window("String Art Visualizer", layout)
-
 
 # Create an event loop
 while True:
     event, values = window.read()
-    # End program if user closes window or
-    # presses the Exit button
+    # End program if user closes window 
     if event == sg.WIN_CLOSED:
         break
+    # Save current configuration to a file
     if event == "Save":
         filename = sg.popup_get_file('Save Config', save_as=True)
         if filename:
             open(filename, 'w').write(str(create_config_json()))
+    # Load configuration from a file
     if event == "Load":
         filename = sg.popup_get_file('Load Config')
         if filename:
             config = open(filename, 'r').read()
             apply_config(config)
-
-
+    # Update the image with the new configuration
     if event == "Update":
         if values['-POINT-'][-1] not in ('0123456789'):
             sg.popup("Only digits allowed")
@@ -394,5 +306,3 @@ while True:
         window.refresh()
 
 window.close()
-
-print("done")
