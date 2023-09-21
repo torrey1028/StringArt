@@ -7,6 +7,8 @@ pi = math.pi
 # global variables -> should definitely be wrapped in a class at some point
 points = 200 # nails around the circle
 radius = 5000 # in pixels
+# 36 inches = 10000 pixels, 1 inch = 277.777 pixels
+scale_factor = 277.777
 elements = []
 
 # available colors
@@ -96,6 +98,9 @@ class Stripe:
             self.pattern += coords[stop - x + offset]
         self.fill = fill
         self.width = width
+        for x in range(0, len(self.pattern) - 1):
+            self.yarn_len += math.dist(self.pattern[x], self.pattern[(x + 1)])
+
 
     def render(self, img):
         img.line(self.pattern, fill=self.fill, width=self.width)
@@ -111,14 +116,20 @@ class HourGlass:
         self.id = HourGlass.class_count
         HourGlass.class_count += 1
         self.visible = True
+        self.yarn_len = 0
 
     def render(self, img, coords):
+        self.yarn_len = 0
         if not self.visible:
             return
         self.pattern = []
         for x in range(self.start, self.start + self.stop):
             self.pattern += coords[(x) % len(coords)]
             self.pattern += coords[(x + self.offset) % len(coords)]
+
+        for x in range(0, len(self.pattern) - 3, 2):
+            self.yarn_len += math.dist([self.pattern[x], self.pattern[(x + 1)]], [self.pattern[(x + 2)], self.pattern[(x + 3)]])
+
         img.line(self.pattern, fill=self.fill, width=self.width)
 
     def get_gui(self):
@@ -225,6 +236,29 @@ def apply_config(config):
                                      points), resize=(400, 400)))
     window.refresh()
 
+def get_yarn_list():
+    yarn_len_list = {}
+    for color in colors:
+        yarn_len_list[color] = 0
+    for item in elements:
+        yarn_len_list[color_to_string(item.fill)] += item.yarn_len
+
+    render_list = []
+    for item in yarn_len_list:
+        render_list.append(sg.Text(item + ": " + str(yarn_len_list[item]/scale_factor), key='-YARN' + item + '-'))
+
+    return render_list
+
+def update_yarn_list():
+    yarn_len_list = {}
+    for color in colors:
+        yarn_len_list[color] = 0
+    for item in elements:
+        yarn_len_list[color_to_string(item.fill)] += item.yarn_len
+
+    for item in yarn_len_list:
+        window['-YARN' + item + '-'].update(item + ": " + str(yarn_len_list[item]/scale_factor))
+
 # creates visual layout for virst column of the window
 def create_list():
     list = []
@@ -232,6 +266,7 @@ def create_list():
     list.append([input_txt, input_box])
     for item in elements:
         list.append(item.get_gui())
+    list.append(get_yarn_list())
     return list
 
 # add visual elements to the global elements list
@@ -302,6 +337,7 @@ while True:
                 item.visible = values['-VISIBLE' + str(item.id) + '-']
             window['-IMAGE-'].update(data=get_image(DrawCircle(radius,
                                      int(values['-POINT-'])), resize=(400, 400)))
+            update_yarn_list()
     if event == "Resize":
         window.refresh()
 
