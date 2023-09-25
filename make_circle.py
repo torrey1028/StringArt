@@ -64,19 +64,51 @@ def color_to_string(color):
 # Currently only the HourGlass class is implememented properly
 
 class Centered:
-    def __init__(self, skip, fill, coords, width=0):
-        x = 0
-        self.pattern = coords[x]
-        exit = False
-        while not exit:
-            x += skip
-            self.pattern += coords[x % len(coords)]
-            exit = x % len(coords) == 0
+    class_count = 0
+    def __init__(self, skip, fill, width=0):
         self.fill = fill
         self.width = width
+        self.skip = skip
+        self.yarn_len = 0
+        self.visible = True
+        self.id = Centered.class_count
+        Centered.class_count += 1
 
-    def render(self, img):
-        img.line(self.pattern, fill=self.fill, width=self.width)
+    def render(self, img, coords):
+        self.yarn_len = 0
+        if not self.visible:
+            return
+        x = 0
+        pattern = coords[x]
+        exit = False
+        while not exit:
+            x += self.skip
+            pattern += coords[x % len(coords)]
+            exit = x % len(coords) == 0
+
+        img.line(pattern, fill=self.fill, width=self.width)
+
+    def get_gui(self):
+        return [
+            sg.Text("Skip:"),
+            sg.Input(self.skip, key='-SKIP-cen' + str(self.id) +
+                     '-', justification='left', size=(5, 1)),
+            sg.Text("Fill:"),
+            sg.Combo(colors, color_to_string(self.fill), key='-FILL-cen' + str(self.id) +
+                     '-', readonly=False, size=(5, 1)),
+            sg.Text("Width:"),
+            sg.Input(self.width, key='-WIDTH-cen' + str(self.id) +
+                     '-', justification='left', size=(5, 1)),
+            sg.Checkbox("Visible", default=True, key='-VISIBLE-cen' + str(self.id) + '-')
+        ]
+    
+    def get_json(self):
+        json = {}
+        json["skip"] = self.skip
+        json["fill"] = color_to_string(self.fill)
+        json["width"] = self.width
+        json["visible"] = self.visible
+        return json
 
 class Fan:
     def __init__(self, origin, start, stop, fill, coords, width=0):
@@ -283,6 +315,12 @@ elements.append(HourGlass(int(points/4) - 30, 20, 180, yarn1, 5))
 elements.append(HourGlass(int(points/4) - 30, 20, 185, yarn1, 5))
 elements.append(HourGlass(int(points/4) - 30, 20, 190, yarn1, 5))
 elements.append(HourGlass(int(points/4) - 30, 20, 195, yarn1, 5))
+elements.append(Centered(15, yarn5, 5))
+elements.append(Centered(15, yarn5, 5))
+elements.append(Centered(15, yarn5, 5))
+elements.append(Centered(15, yarn5, 5))
+elements.append(Centered(15, yarn5, 5))
+elements.append(Centered(15, yarn5, 5))
 
 save_btn = sg.Button("Save")
 update_btn = sg.Button("Update")
@@ -329,12 +367,19 @@ while True:
         else:
             for x in range(0, len(elements)):
                 item = elements[x]
-                item.start = int(values['-START' + str(item.id) + '-'])
-                item.stop = int(values['-STOP' + str(item.id) + '-'])
-                item.offset = int(values['-OFFSET' + str(item.id) + '-'])
-                item.fill = string_to_color(values['-FILL' + str(item.id) + '-'])
-                item.width = int(values['-WIDTH' + str(item.id) + '-'])
-                item.visible = values['-VISIBLE' + str(item.id) + '-']
+                if type(item) is HourGlass:
+                    item.start = int(values['-START' + str(item.id) + '-'])
+                    item.stop = int(values['-STOP' + str(item.id) + '-'])
+                    item.offset = int(values['-OFFSET' + str(item.id) + '-'])
+                    item.fill = string_to_color(values['-FILL' + str(item.id) + '-'])
+                    item.width = int(values['-WIDTH' + str(item.id) + '-'])
+                    item.visible = values['-VISIBLE' + str(item.id) + '-']
+                elif type(item) is Centered:
+                    item.skip = int(values['-SKIP-cen' + str(item.id) + '-'])
+                    item.fill = string_to_color(values['-FILL-cen' + str(item.id) + '-'])
+                    item.width = int(values['-WIDTH-cen' + str(item.id) + '-'])
+                    item.visible = values['-VISIBLE-cen' + str(item.id) + '-']
+                    
             window['-IMAGE-'].update(data=get_image(DrawCircle(radius,
                                      int(values['-POINT-'])), resize=(400, 400)))
             update_yarn_list()
