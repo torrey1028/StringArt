@@ -64,15 +64,13 @@ def color_to_string(color):
 # Currently only the HourGlass class is implememented properly
 
 class Centered:
-    class_count = 0
-    def __init__(self, skip, fill, width=0):
+    def __init__(self, skip, fill, element_count, width=0):
         self.fill = fill
         self.width = width
         self.skip = skip
         self.yarn_len = 0
         self.visible = True
-        self.id = Centered.class_count
-        Centered.class_count += 1
+        self.id = element_count
 
     def render(self, img, coords):
         self.yarn_len = 0
@@ -138,15 +136,13 @@ class Stripe:
         img.line(self.pattern, fill=self.fill, width=self.width)
 
 class HourGlass:
-    class_count = 0 # static value used to assign unique ids to each object
-    def __init__(self, start, stop, offset, fill, width=0):
+    def __init__(self, start, stop, offset, fill, element_count, width=0):
         self.fill = fill
         self.width = width
         self.start = start
         self.stop = stop
         self.offset = offset
-        self.id = HourGlass.class_count
-        HourGlass.class_count += 1
+        self.id = element_count
         self.visible = True
         self.yarn_len = 0
 
@@ -252,18 +248,28 @@ def apply_config(config):
     points = json["points"]
     for item in json["elements"]:
         index = item["id"]
-        elements[index].start = item["start"]
-        elements[index].stop = item["stop"]
-        elements[index].offset = item["offset"]
-        elements[index].fill = string_to_color(item["fill"])
-        elements[index].width = item["width"]
-        elements[index].visible = item["visible"]
-        window['-START' + str(index) + '-'].update(value=item["start"])
-        window['-STOP' + str(index) + '-'].update(value=item["stop"])
-        window['-OFFSET' + str(index) + '-'].update(value=item["offset"])
-        window['-FILL' + str(index) + '-'].update(value=item["fill"])
-        window['-WIDTH' + str(index) + '-'].update(value=item["width"])
-        window['-VISIBLE' + str(index) + '-'].update(value=item["visible"])
+        if type(elements[index]) is HourGlass:
+            elements[index].start = item["start"]
+            elements[index].stop = item["stop"]
+            elements[index].offset = item["offset"]
+            elements[index].fill = string_to_color(item["fill"])
+            elements[index].width = item["width"]
+            elements[index].visible = item["visible"]
+            window['-START' + str(index) + '-'].update(value=item["start"])
+            window['-STOP' + str(index) + '-'].update(value=item["stop"])
+            window['-OFFSET' + str(index) + '-'].update(value=item["offset"])
+            window['-FILL' + str(index) + '-'].update(value=item["fill"])
+            window['-WIDTH' + str(index) + '-'].update(value=item["width"])
+            window['-VISIBLE' + str(index) + '-'].update(value=item["visible"])
+        elif type(elements[index]) is Centered:
+            elements[index].skip = item["skip"]
+            elements[index].fill = string_to_color(item["fill"])
+            elements[index].width = item["width"]
+            elements[index].visible = item["visible"]
+            window['-SKIP-cen' + str(index) + '-'].update(value=item["skip"])
+            window['-FILL-cen' + str(index) + '-'].update(value=item["fill"])
+            window['-WIDTH-cen' + str(index) + '-'].update(value=item["width"])
+            window['-VISIBLE-cen' + str(index) + '-'].update(value=item["visible"])
     window['-IMAGE-'].update(data=get_image(DrawCircle(radius,
                                      points), resize=(400, 400)))
     window.refresh()
@@ -302,25 +308,44 @@ def create_list():
     return list
 
 # add visual elements to the global elements list
-elements.append(HourGlass(int(points/4) + 10, 20, int(points/6), yarn1, 5))
-elements.append(HourGlass(int(points/4), 20, int(points/6) + 20, yarn2, 5))
+element_count = 0
+elements.append(HourGlass(int(points/4) + 10, 20, int(points/6), yarn1, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4), 20, int(points/6) + 20, yarn2, element_count, 5))
+element_count += 1
 elements.append(HourGlass(int(points/4) - 10, 20,
-                int(points/6) + 40, yarn3, 5))
-elements.append(HourGlass(int(points/4) - 10, 20, 100, yarn4, 5))
-elements.append(HourGlass(int(points/4) - 10, 20, 130, yarn3, 5))
-elements.append(HourGlass(int(points/4) - 20, 20, 150, yarn2, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 170, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 175, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 180, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 185, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 190, yarn1, 5))
-elements.append(HourGlass(int(points/4) - 30, 20, 195, yarn1, 5))
-elements.append(Centered(15, yarn5, 5))
-elements.append(Centered(15, yarn5, 5))
-elements.append(Centered(15, yarn5, 5))
-elements.append(Centered(15, yarn5, 5))
-elements.append(Centered(15, yarn5, 5))
-elements.append(Centered(15, yarn5, 5))
+                int(points/6) + 40, yarn3, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 10, 20, 100, yarn4, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 10, 20, 130, yarn3, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 20, 20, 150, yarn2, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 30, 20, 170, yarn1, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 30, 20, 175, yarn1, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 30, 20, 180, yarn1, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 30, 20, 185, yarn1, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 30, 20, 190, yarn1, element_count, 5))
+element_count += 1
+elements.append(HourGlass(int(points/4) - 30, 20, 195, yarn1, element_count, 5))
+element_count += 1
+elements.append(Centered(15, yarn5, element_count, 5))
+element_count += 1
+elements.append(Centered(15, yarn5, element_count, 5))
+element_count += 1
+elements.append(Centered(15, yarn5, element_count, 5))
+element_count += 1
+elements.append(Centered(15, yarn5, element_count, 5))
+element_count += 1
+elements.append(Centered(15, yarn5, element_count, 5))
+element_count += 1
+elements.append(Centered(15, yarn5, element_count, 5))
+element_count += 1
 
 save_btn = sg.Button("Save")
 update_btn = sg.Button("Update")
